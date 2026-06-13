@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Enums ────────────────────────────────────────────────────────────
+
+enum TransactionType {
+  BUY
+  SELL
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+}
+
+enum FundCategory {
+  EQUITY
+  DEBT
+  HYBRID
+}
+
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum AlertStatus {
+  ACTIVE
+  TRIGGERED
+  CANCELLED
+}
+
+enum NotificationType {
+  PRICE_ALERT
+  ORDER_CONFIRMATION
+  SIP_DEDUCTION
+  KYC_UPDATE
+  FUND_CREDIT
+  FUND_WITHDRAWAL
+  GENERAL
+}
+
+// ── User ─────────────────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  phone           String?
+  dob             DateTime? @map("date_of_birth")
+  isVerified      Boolean   @default(false) @map("is_verified")
+  panNumber       String?   @map("pan_number")
+  aadhaarLast4    String?   @map("aadhaar_last4")
+  kycDocFilename  String?   @map("kyc_doc_filename")
+  kycStatus       KycStatus @default(NOT_STARTED) @map("kyc_status")
+  walletBalance   Float     @default(0)
+  refreshToken    String?   @map("refresh_token")
+  twoFactorEnabled Boolean  @default(false) @map("two_factor_enabled")
+  twoFactorSecret  String?  @map("two_factor_secret")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  otps             Otp[]
+  portfolios       Portfolio[]
+  watchlists       Watchlist[]
+  transactions     Transaction[]
+  bankAccounts     BankAccount[]
+  priceAlerts      PriceAlert[]
+  notifications    Notification[]
+  sips             Sip[]
+  fundTransactions FundTransaction[]
+  settings         UserSettings?
+
+  @@map("users")
+}
+
+// ── OTP ──────────────────────────────────────────────────────────────
+
+model Otp {
+  id        String   @id @default(uuid())
+  email     String
+  otpCode   String   @map("otp_code")
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  isVerified Boolean @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?    @relation(fields: [email], references: [email], onDelete: Cascade)
+
+  @@map("otps")
+}
+
+// ── Portfolio ────────────────────────────────────────────────────────
+
+model Portfolio {
+  id          String  @id @default(uuid())
+  userId      String  @map("user_id")
+  symbol      String
+  quantity    Int
+  avgBuyPrice Float   @map("avg_buy_price")
+
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@map("portfolios")
+}
+
+// ── Watchlist ────────────────────────────────────────────────────────
+
+model Watchlist {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  symbol String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@map("watchlists")
+}
+
+// ── Transaction ──────────────────────────────────────────────────────
+
+model Transaction {
+  id        String          @id @default(uuid())
+  userId    String          @map("user_id")
+  symbol    String
+  type      TransactionType
+  quantity  Int
+  price     Float
+  timestamp DateTime        @default(now())
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+// ── Bank Account ─────────────────────────────────────────────────────
+
+model BankAccount {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  accountNo   String   @map("account_no")
+  ifsc        String
+  bankName    String   @map("bank_name")
+  isPrimary   Boolean  @default(false) @map("is_primary")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("bank_accounts")
+}
+
+// ── Mutual Fund ──────────────────────────────────────────────────────
+
+model MutualFund {
+  id              String       @id @default(uuid())
+  name            String
+  category        FundCategory
+  riskLevel       RiskLevel    @map("risk_level")
+  nav             Float
+  expenseRatio    Float        @map("expense_ratio")
+  aum             Float        // Assets Under Management in Crores
+  return1Y        Float?       @map("return_1y")
+  return3Y        Float?       @map("return_3y")
+  return5Y        Float?       @map("return_5y")
+  minInvestment   Float        @default(500) @map("min_investment")
+  minSipAmount    Float        @default(500) @map("min_sip_amount")
+  fundManager     String       @map("fund_manager")
+  fundHouse       String       @map("fund_house")
+  launchDate      DateTime     @map("launch_date")
+  description     String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  transactions    FundTransaction[]
+  sips            Sip[]
+
+  @@map("mutual_funds")
+}
+
+// ── Fund Transaction ─────────────────────────────────────────────────
+
+model FundTransaction {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  fundId      String   @map("fund_id")
+  type        TransactionType
+  amount      Float
+  nav         Float
+  units       Float
+  timestamp   DateTime @default(now())
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fund        MutualFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("fund_transactions")
+}
+
+// ── SIP ──────────────────────────────────────────────────────────────
+
+model Sip {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  fundId        String   @map("fund_id")
+  monthlyAmount Float    @map("monthly_amount")
+  startDate     DateTime @map("start_date")
+  endDate       DateTime @map("end_date")
+  isActive      Boolean  @default(true) @map("is_active")
+  nextDeduction DateTime @map("next_deduction")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fund          MutualFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("sips")
+}
+
+// ── Price Alert ──────────────────────────────────────────────────────
+
+model PriceAlert {
+  id          String      @id @default(uuid())
+  userId      String      @map("user_id")
+  symbol      String
+  targetPrice Float       @map("target_price")
+  condition   String      // 'ABOVE' or 'BELOW'
+  status      AlertStatus @default(ACTIVE)
+  triggeredAt DateTime?   @map("triggered_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("price_alerts")
+}
+
+// ── Notification ─────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false) @map("is_read")
+  metadata  String?          // JSON string for additional data
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ── User Settings ────────────────────────────────────────────────────
+
+model UserSettings {
+  id                    String  @id @default(uuid())
+  userId                String  @unique @map("user_id")
+  theme                 String  @default("dark")
+  emailOnPriceAlert     Boolean @default(true) @map("email_on_price_alert")
+  emailOnOrderExecution Boolean @default(true) @map("email_on_order_execution")
+  emailOnSipDeduction   Boolean @default(true) @map("email_on_sip_deduction")
+  emailOnFundCredit     Boolean @default(true) @map("email_on_fund_credit")
+
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}

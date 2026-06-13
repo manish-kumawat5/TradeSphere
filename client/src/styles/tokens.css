@@ -1,0 +1,57 @@
+/* Design System Tokens */
+:root {
+  /* BACKGROUNDS — layered depth system */
+  --bg-base:      #080B10;   /* page background — deepest */
+  --bg-surface:   #0D1117;   /* cards, panels */
+  --bg-elevated:  #161B22;   /* dropdowns, modals */
+  --bg-overlay:   #1C2333;   /* hover states, tooltips */
+
+  /* BORDERS */
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong:  rgba(255,255,255,0.18);
+
+  /* BRAND GREENS */
+  --green-500: #00D09C;
+  --green-400: #00E6AD;
+  --green-600: #00A878;
+  --green-glow: rgba(0, 208, 156, 0.15);
+  --green-subtle: rgba(0, 208, 156, 0.08);
+
+  /* SEMANTIC COLORS */
+  --up:       #00D09C;   /* profit / positive */
+  --down:     #FF4757;   /* loss / negative */
+  --up-bg:    rgba(0, 208, 156, 0.08);
+  --down-bg:  rgba(255, 71, 87, 0.08);
+  --warn:     #FFA94D;
+  --info:     #4DABF7;
+
+  /* TEXT */
+  --text-primary:   #F0F6FC;
+  --text-secondary: #8B949E;
+  --text-muted:     #484F58;
+  --text-inverse:   #080B10;
+
+  /* SPACING SCALE */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* RADIUS */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* SHADOWS */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 0 0 0.5px var(--border-subtle);
+  --shadow-glow-green: 0 0 20px rgba(0,208,156,0.2);
+  --shadow-modal: 0 24px 48px rgba(0,0,0,0.7);
+
+  /* FONT */
+  --font-display: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
