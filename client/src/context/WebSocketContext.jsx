@@ -22,7 +22,7 @@ export function WebSocketProvider({ children }) {
       return;
     }
 
-    const wsUrl = `ws://${window.location.hostname}:5001/ws`;
+    const wsUrl = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:5001/ws`;
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
