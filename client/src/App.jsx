@@ -16,6 +16,7 @@ import ETFPage from './pages/ETFPage';
 import IPOPage from './pages/IPOPage';
 import BondsPage from './pages/BondsPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAuth } from './context/AuthContext';
 import SIPCalculator from './pages/SIPCalculator';
@@ -31,6 +32,14 @@ function PublicRoute({ children }) {
   return children;
 }
 
+function ProtectedLayout({ children }) {
+  return (
+    <ProtectedRoute>
+      <Layout>{children}</Layout>
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -39,25 +48,25 @@ export default function App() {
         <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/markets" element={<ProtectedRoute><MarketsPage /></ProtectedRoute>} />
-        <Route path="/stocks" element={<ProtectedRoute><StocksPage /></ProtectedRoute>} />
-        <Route path="/stocks/:symbol" element={<ProtectedRoute><StockDetailPage /></ProtectedRoute>} />
-        <Route path="/stock/:symbol" element={<ProtectedRoute><StockDetailPage /></ProtectedRoute>} />
-        <Route path="/fno" element={<ProtectedRoute><FnOPage /></ProtectedRoute>} />
-        <Route path="/mutual-funds" element={<ProtectedRoute><MutualFundsPage /></ProtectedRoute>} />
-        <Route path="/etf" element={<ProtectedRoute><ETFPage /></ProtectedRoute>} />
-        <Route path="/ipo" element={<ProtectedRoute><IPOPage /></ProtectedRoute>} />
-        <Route path="/bonds" element={<ProtectedRoute><BondsPage /></ProtectedRoute>} />
-        <Route path="/funds" element={<ProtectedRoute><FundsList /></ProtectedRoute>} />
-        <Route path="/funds/:id" element={<ProtectedRoute><FundDetail /></ProtectedRoute>} />
-        <Route path="/funds/:id/sip" element={<ProtectedRoute><SIPSetup /></ProtectedRoute>} />
-        <Route path="/tools/sip-calculator" element={<ProtectedRoute><SIPCalculator /></ProtectedRoute>} />
-        <Route path="/tools/lumpsum-calculator" element={<ProtectedRoute><LumpsumCalculator /></ProtectedRoute>} />
-        <Route path="/tools/xirr-calculator" element={<ProtectedRoute><XIRRCalculator /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedLayout><DashboardPage /></ProtectedLayout>} />
+        <Route path="/markets" element={<ProtectedLayout><MarketsPage /></ProtectedLayout>} />
+        <Route path="/stocks" element={<ProtectedLayout><StocksPage /></ProtectedLayout>} />
+        <Route path="/stocks/:symbol" element={<ProtectedLayout><StockDetailPage /></ProtectedLayout>} />
+        <Route path="/stock/:symbol" element={<ProtectedLayout><StockDetailPage /></ProtectedLayout>} />
+        <Route path="/fno" element={<ProtectedLayout><FnOPage /></ProtectedLayout>} />
+        <Route path="/mutual-funds" element={<ProtectedLayout><MutualFundsPage /></ProtectedLayout>} />
+        <Route path="/etf" element={<ProtectedLayout><ETFPage /></ProtectedLayout>} />
+        <Route path="/ipo" element={<ProtectedLayout><IPOPage /></ProtectedLayout>} />
+        <Route path="/bonds" element={<ProtectedLayout><BondsPage /></ProtectedLayout>} />
+        <Route path="/funds" element={<ProtectedLayout><FundsList /></ProtectedLayout>} />
+        <Route path="/funds/:id" element={<ProtectedLayout><FundDetail /></ProtectedLayout>} />
+        <Route path="/funds/:id/sip" element={<ProtectedLayout><SIPSetup /></ProtectedLayout>} />
+        <Route path="/tools/sip-calculator" element={<ProtectedLayout><SIPCalculator /></ProtectedLayout>} />
+        <Route path="/tools/lumpsum-calculator" element={<ProtectedLayout><LumpsumCalculator /></ProtectedLayout>} />
+        <Route path="/tools/xirr-calculator" element={<ProtectedLayout><XIRRCalculator /></ProtectedLayout>} />
+        <Route path="/profile" element={<ProtectedLayout><ProfilePage /></ProtectedLayout>} />
+        <Route path="/notifications" element={<ProtectedLayout><NotificationsPage /></ProtectedLayout>} />
+        <Route path="/reports" element={<ProtectedLayout><ReportsPage /></ProtectedLayout>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </ErrorBoundary>
