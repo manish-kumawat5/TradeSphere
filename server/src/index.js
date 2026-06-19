@@ -43,6 +43,21 @@ app.use(globalLimiter);
 
 // ── Body Parsers ─────────────────────────────────────────────────────
 app.use(express.json({ limit: '10kb' }));
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    console.error('JSON parse error for', req.method, req.path);
+    return res.status(400).json({ success: false, message: 'Invalid JSON in request body' });
+  }
+  next(err);
+});
+
+// ── Request logger (debug POST bodies) ──────────────────────────────
+app.use((req, res, next) => {
+  if (req.method === 'POST' && req.path.includes('/auth/login')) {
+    console.log('Login request body:', JSON.stringify(req.body));
+  }
+  next();
+});
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
