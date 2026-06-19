@@ -23,6 +23,9 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Wrap protected content with the main Layout (Header, Sidebar, Footer)
+  if (location.pathname === '/dashboard') {
+    return children;
+  }
+
   return <Layout>{children}</Layout>;
 }
