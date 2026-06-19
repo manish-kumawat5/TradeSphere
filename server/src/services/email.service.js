@@ -17,13 +17,13 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
   });
 }
 
-transporter.verify((error) => {
-  if (error) {
-    console.error('❌ Email transporter failed:', error.message);
-  } else {
-    console.log('✅ Email transporter ready');
-  }
-});
+if (process.env.NODE_ENV !== 'production') {
+  transporter.verify((error) => {
+    if (error) {
+      console.warn('⚠ Email transporter verify warning:', error.message);
+    }
+  });
+}
 
 /**
  * Generate a 6-digit OTP
