@@ -17,8 +17,6 @@ const profileRoutes = require('./routes/profile.routes');
 const { errorHandler } = require('./middleware/error.middleware');
 
 const app = express();
-const PORT = process.env.PORT || 5003;
-const server = http.createServer(app);
 
 // ── Security Middleware ──────────────────────────────────────────────
 app.use(helmet());
@@ -31,7 +29,7 @@ app.use(cors({
 
 // ── Global Rate Limiter ──────────────────────────────────────────────
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 1000,
   message: { success: false, message: 'Too many requests, please try again later.' },
   standardHeaders: true,
@@ -70,52 +68,53 @@ app.use((req, res) => {
 // ── Global Error Handler ─────────────────────────────────────────────
 app.use(errorHandler);
 
-// ── Start WebSocket Server ───────────────────────────────────────────
-const { WebSocketServer } = require('ws');
-const wss = new WebSocketServer({ server });
+module.exports = app;
 
-// Start SIP scheduler
-const { startSipScheduler } = require('./services/sipScheduler');
-startSipScheduler();
+// ── Standalone server (for Render / local dev) ───────────────────────
+if (!process.env.VERCEL) {
+  const http = require('http');
+  const server = http.createServer(app);
+  const PORT = process.env.PORT || 5003;
 
-wss.on('connection', (ws) => {
-  console.log('Client connected to price feed');
-  ws.on('close', () => console.log('Client disconnected'));
-});
+  const { WebSocketServer } = require('ws');
+  const wss = new WebSocketServer({ server });
 
-const SYMBOLS = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'WIPRO', 'SBIN', 'BAJFINANCE', 'NIFTY50', 'SENSEX', 'BANKNIFTY'];
+  const { startSipScheduler } = require('./services/sipScheduler');
+  startSipScheduler();
 
-const prices = {};
-SYMBOLS.forEach(s => { prices[s] = 1000 + Math.random() * 4000; });
-
-setInterval(() => {
-  SYMBOLS.forEach(sym => {
-    const change = (Math.random() - 0.495) * 0.006;
-    prices[sym] = parseFloat((prices[sym] * (1 + change)).toFixed(2));
+  wss.on('connection', (ws) => {
+    console.log('Client connected to price feed');
+    ws.on('close', () => console.log('Client disconnected'));
   });
-  const payload = JSON.stringify({ type: 'PRICE_TICK', data: prices, ts: Date.now() });
-  wss.clients.forEach(client => {
-    if (client.readyState === 1) client.send(payload);
-  });
-}, 3000);
 
-global.livePrices = prices;
+  const SYMBOLS = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'WIPRO', 'SBIN', 'BAJFINANCE', 'NIFTY50', 'SENSEX', 'BANKNIFTY'];
+  const prices = {};
+  SYMBOLS.forEach(s => { prices[s] = 1000 + Math.random() * 4000; });
 
-// ── Start Server ─────────────────────────────────────────────────────
-server.listen(PORT, () => {
-}).on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    const newPort = parseInt(PORT) + 1;
-    console.warn(`Port ${PORT} in use, switching to ${newPort}`);
-    process.env.PORT = newPort;
-    server.listen(newPort, () => {
-      console.log(`\n🚀 TradeSphere API running on http://localhost:${newPort}`);
-      console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
+  setInterval(() => {
+    SYMBOLS.forEach(sym => {
+      const change = (Math.random() - 0.495) * 0.006;
+      prices[sym] = parseFloat((prices[sym] * (1 + change)).toFixed(2));
     });
-  } else {
-    console.error('Server error:', err);
-  }
-});
+    const payload = JSON.stringify({ type: 'PRICE_TICK', data: prices, ts: Date.now() });
+    wss.clients.forEach(client => {
+      if (client.readyState === 1) client.send(payload);
+    });
+  }, 3000);
 
+  global.livePrices = prices;
 
-module.exports = server;
+  server.listen(PORT, () => {}).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      const newPort = parseInt(PORT) + 1;
+      console.warn(`Port ${PORT} in use, switching to ${newPort}`);
+      process.env.PORT = newPort;
+      server.listen(newPort, () => {
+        console.log(`\n🚀 TradeSphere API running on http://localhost:${newPort}`);
+        console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
+      });
+    } else {
+      console.error('Server error:', err);
+    }
+  });
+}
