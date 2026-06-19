@@ -79,8 +79,9 @@ if (!process.env.VERCEL) {
   const { WebSocketServer } = require('ws');
   const wss = new WebSocketServer({ server });
 
-  const { startSipScheduler } = require('./services/sipScheduler');
-  startSipScheduler();
+  // SIP scheduler removed (was causing DB connection issues at startup)
+  // const { startSipScheduler } = require('./services/sipScheduler');
+  // startSipScheduler();
 
   wss.on('connection', (ws) => {
     console.log('Client connected to price feed');
