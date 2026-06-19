@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { validationResult } = require('express-validator');
 const prisma = require('../config/database');
 const { generateTokenPair, verifyRefreshToken } = require('../config/jwt');
@@ -198,9 +199,11 @@ async function resendOtp(req, res, next) {
     attempts = attempts.filter((timestamp) => timestamp > tenMinutesAgo);
 
     if (attempts.length >= 3) {
-      return res.status(429).json({
-        success: false,
-        message: 'Too many OTP requests. Please wait 10 minutes.',
+      // Instead of an error, return a generic success response to avoid UI breaking.
+      // The client will keep the cooldown timer but will know the request was ignored.
+      return res.json({
+        success: true,
+        message: 'If an account with this email exists, a new OTP has been sent.',
       });
     }
 
@@ -458,7 +461,7 @@ async function forgotPassword(req, res, next) {
     const { email } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return res.json({ success: true, message: 'If the account exists, an OTP has been sent.' });
+      return res.status(404).json({ success: false, message: 'No account found with this email. Please sign up first.' });
     }
 
     await prisma.otp.updateMany({
@@ -484,9 +487,77 @@ async function forgotPassword(req, res, next) {
       console.log(`\n🔑 Forgot Password OTP for ${email}: ${otpCode}\n`);
     }
 
-    res.json({ success: true, message: 'OTP sent to email successfully.' });
+    let response = { success: true, message: 'OTP sent to email successfully.' };
+      if (process.env.NODE_ENV === 'development') {
+        response.otp = otpCode;
+      }
+      res.json(response);
   } catch (err) {
     next(err);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  POST /api/auth/verify-forgot-password-otp
+// ══════════════════════════════════════════════════════════════════════
+async function verifyForgotPasswordOtp(req, res, next) {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP are required.' });
+    }
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with this email.' });
+    }
+
+    // Find valid OTP
+    const otpRecord = await prisma.otp.findFirst({
+      where: {
+        email,
+        otpCode: otp,
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP. Please request a new one.',
+      });
+    }
+
+    // Mark OTP as used
+    await prisma.otp.update({
+      where: { id: otpRecord.id },
+      data: { used: true },
+    });
+
+    // Generate a short-lived reset token (NOT an auth token)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    // Store reset token on user record
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { resetToken, resetTokenExpiry },
+    });
+
+    // Return the reset token WITHOUT setting auth cookies or logging in
+    res.json({
+      success: true,
+      message: 'OTP verified successfully.',
+      data: {
+        resetToken,
+      },
+    });
+  } catch (error) {
+    next(error);
   }
 }
 
@@ -495,32 +566,36 @@ async function forgotPassword(req, res, next) {
 // ══════════════════════════════════════════════════════════════════════
 async function resetPassword(req, res, next) {
   try {
-    const { email, otp, newPassword } = req.body;
+    const { resetToken, newPassword } = req.body;
 
-    const otpRecord = await prisma.otp.findFirst({
+    if (!resetToken || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Reset token and new password are required.' });
+    }
+
+    // Find user by reset token
+    const user = await prisma.user.findFirst({
       where: {
-        email,
-        otpCode: otp,
-        used: false,
-        expiresAt: { gt: new Date() },
+        resetToken,
+        resetTokenExpiry: { gt: new Date() },
       },
     });
 
-    if (!otpRecord) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired reset token. Please start over.' });
     }
 
-    await prisma.otp.update({
-      where: { id: otpRecord.id },
-      data: { used: true },
-    });
-
+    // Reset password
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(newPassword, salt);
 
     await prisma.user.update({
-      where: { email },
-      data: { passwordHash, refreshToken: null },
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        refreshToken: null,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
     });
 
     res.json({ success: true, message: 'Password reset successfully. Please log in.' });
@@ -541,6 +616,7 @@ async function getMe(req, res) {
 
 module.exports = {
   forgotPassword,
+  verifyForgotPasswordOtp,
   resetPassword,
   register,
   verifyOtp,

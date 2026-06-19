@@ -8,27 +8,41 @@ import api from '../lib/api';
 import { useWebSocket } from '../context/WebSocketContext';
 import OrderModal from '../components/OrderModal';
 
-function generateFallbackOHLCV(symbol, timeframe) {
+function generateFallbackOHLCV(symbol, timeframe, currentPrice = null) {
   let hash = 0;
   for (let i = 0; i < symbol.length; i++) hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
   const rand = () => { hash = Math.sin(hash) * 10000; return hash - Math.floor(hash); };
-  
-  const count = timeframe === '1D' ? 78 : timeframe === '1W' ? 100 : 100;
-  let val = 100 + (rand() * 900);
-  const data = [];
-  
-  const now = Math.floor(Date.now() / 1000);
-  const interval = timeframe === '1D' ? 300 : timeframe === '1W' ? 3600 : 86400;
 
-  for(let i = 0; i < count; i++) {
-    const time = now - (count - i) * interval;
-    const change = (rand() - 0.5) * val * 0.02;
+  const count = timeframe === '1D' ? 78 : timeframe === '1W' ? 100 : 100;
+  const targetPrice = currentPrice || 100 + (rand() * 900);
+
+  // Get today's NSE session timestamps (9:15–15:30 IST)
+  const now = new Date();
+  const istOffset = 330 * 60 * 1000;
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const istNowMs = utcMs + istOffset;
+  const istDate = new Date(istNowMs);
+  const todayStartMs = Date.UTC(istDate.getUTCFullYear(), istDate.getUTCMonth(), istDate.getUTCDate());
+  const marketOpenMs = todayStartMs + (9 * 60 + 15) * 60000;
+  const marketCloseMs = todayStartMs + (15 * 60 + 30) * 60000;
+  const sessionMs = marketCloseMs - marketOpenMs;
+  const intervalMs = sessionMs / count;
+
+  let val = targetPrice * (1 - 0.015);
+  const stepTrend = (targetPrice - val) / count;
+  const data = [];
+  const nowUnix = Math.floor(Date.now() / 1000);
+
+  for (let i = 0; i < count; i++) {
+    const time = Math.floor((marketOpenMs + i * intervalMs) / 1000);
+    if (time > nowUnix) break;
+    const noise = (rand() - 0.5) * targetPrice * 0.004;
     const open = val;
-    const close = val + change;
-    const high = Math.max(open, close) + rand() * Math.abs(change);
-    const low = Math.min(open, close) - rand() * Math.abs(change);
-    data.push({ time, open, high, low, close });
-    val = close;
+    val = val + stepTrend + noise;
+    const close = i === count - 1 ? targetPrice : val;
+    const high = Math.max(open, close) + rand() * Math.abs(close - open) * 0.5;
+    const low = Math.min(open, close) - rand() * Math.abs(close - open) * 0.5;
+    data.push({ time, open: +open.toFixed(2), high: +high.toFixed(2), low: +low.toFixed(2), close: +close.toFixed(2) });
   }
   return data;
 }
@@ -47,6 +61,24 @@ export default function StockDetailPage() {
   const [inWatchlist, setInWatchlist] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isOrderOpen, setIsOrderOpen] = useState(false);
+  const [dataSource, setDataSource] = useState(null);
+  const historyRef = useRef([]);
+
+  function isMarketOpen() {
+    const now = new Date();
+    const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const day = ist.getDay();
+    if (day === 0 || day === 6) return false;
+    const totalMins = ist.getHours() * 60 + ist.getMinutes();
+    return totalMins >= (9 * 60 + 15) && totalMins <= (15 * 60 + 30);
+  }
+
+  const [marketOpen, setMarketOpen] = useState(isMarketOpen());
+
+  useEffect(() => {
+    const interval = setInterval(() => setMarketOpen(isMarketOpen()), 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Subscribe to WebSocket ticks for this symbol
   useEffect(() => {
@@ -71,9 +103,15 @@ export default function StockDetailPage() {
           setStockInfo(quoteRes.data.data);
         }
         if (historyRes.data.success && historyRes.data.data.length > 0) {
-          setHistory(historyRes.data.data);
+          const candles = historyRes.data.data;
+          setHistory(candles);
+          historyRef.current = [...candles];
+          setDataSource(historyRes.data.source || 'fallback');
         } else {
-          setHistory(generateFallbackOHLCV(symbol, timeframe));
+          const fallback = generateFallbackOHLCV(symbol, timeframe, quoteRes.data.data?.price);
+          setHistory(fallback);
+          historyRef.current = [...fallback];
+          setDataSource('fallback');
         }
         if (watchlistRes.data.success) {
           const list = watchlistRes.data.data || [];
@@ -82,7 +120,10 @@ export default function StockDetailPage() {
       } catch (err) {
         console.error(err);
         toast.error('Failed to load stock details');
-        setHistory(generateFallbackOHLCV(symbol, timeframe));
+        const fallback = generateFallbackOHLCV(symbol, timeframe, stockInfo?.price);
+        setHistory(fallback);
+        historyRef.current = [...fallback];
+        setDataSource('fallback');
       } finally {
         setLoading(false);
       }
@@ -115,21 +156,39 @@ export default function StockDetailPage() {
     }
   }, [liveData]);
 
-  // Update chart series when live tick arrives
+  // Update chart series when live tick arrives (5-min candle windows)
   useEffect(() => {
-    if (seriesRef.current && liveData && history.length > 0) {
-      const lastPoint = history[history.length - 1];
-      const nowUnix = Math.floor(Date.now() / 1000);
-      
-      seriesRef.current.update({
-        time: nowUnix,
-        open: lastPoint.close,
-        high: Math.max(lastPoint.close, liveData.price),
-        low: Math.min(lastPoint.close, liveData.price),
-        close: liveData.price
-      });
+    if (!seriesRef.current || !liveData || historyRef.current.length === 0) return;
+    if (!marketOpen) return;
+
+    const livePrice = liveData.price;
+    const now = Math.floor(Date.now() / 1000);
+    const candleInterval = 300;
+    const currentCandleTime = Math.floor(now / candleInterval) * candleInterval;
+    const candles = historyRef.current;
+    const lastCandle = candles[candles.length - 1];
+
+    if (lastCandle.time === currentCandleTime) {
+      const updated = {
+        time: currentCandleTime,
+        high: Math.max(lastCandle.high, livePrice),
+        low: Math.min(lastCandle.low, livePrice),
+        close: livePrice,
+      };
+      seriesRef.current.update(updated);
+      candles[candles.length - 1] = updated;
+    } else if (currentCandleTime > lastCandle.time && currentCandleTime <= now + 300) {
+      const newCandle = {
+        time: currentCandleTime,
+        open: lastCandle.close,
+        high: livePrice,
+        low: livePrice,
+        close: livePrice,
+      };
+      seriesRef.current.update(newCandle);
+      candles.push(newCandle);
     }
-  }, [liveData, history]);
+  }, [liveData, marketOpen]);
 
   // Initialize and Render Chart
   useEffect(() => {
@@ -156,7 +215,17 @@ export default function StockDetailPage() {
       timeScale: {
         borderColor: 'rgba(255, 255, 255, 0.08)',
         timeVisible: true,
-        secondsVisible: false
+        secondsVisible: false,
+      },
+      localization: {
+        timeFormatter: (time) => {
+          return new Date(time * 1000).toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          });
+        },
       },
     });
 
@@ -173,7 +242,8 @@ export default function StockDetailPage() {
     });
 
     // Sort history chronologically before pushing
-    const sortedData = [...history].sort((a, b) => a.time - b.time);
+    const sourceData = historyRef.current.length > 0 ? historyRef.current : history;
+    const sortedData = [...sourceData].sort((a, b) => a.time - b.time);
     candleSeries.setData(sortedData);
     seriesRef.current = candleSeries;
 
@@ -225,9 +295,9 @@ export default function StockDetailPage() {
   const isUp = currentChange >= 0;
 
   return (
-    <div className={`min-h-screen pb-16 transition-colors duration-300 ${isDark ? 'dark bg-dark' : 'bg-slate-50'}`}>
+    <div className="min-h-screen pb-16 transition-colors duration-300 bg-[#0A0E17]">
       {/* Top bar */}
-      <div className="border-b border-surface-border bg-white/80 dark:bg-dark/80 backdrop-blur-md sticky top-0 z-30">
+      <div className="border-b border-white/[0.06] bg-[#0A0E17]/80 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/dashboard" className="inline-flex items-center gap-2 text-muted hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" />
@@ -289,21 +359,39 @@ export default function StockDetailPage() {
               </div>
 
               {/* Timeframe selector */}
-              <div className="flex gap-1 p-1 bg-dark-50 rounded-full mb-6 w-fit border border-surface-border">
-                {['1D', '1W', '1M', '3M', '1Y'].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTimeframe(t)}
-                    className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all border ${
-                      timeframe === t
-                        ? 'bg-[#00D09C]/10 text-[#00D09C] border-[#00D09C]'
-                        : 'border-transparent text-muted hover:text-white'
-                    }`}
-                    id={`timeframe-${t}`}
-                  >
-                    {t}
-                  </button>
-                ))}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex gap-1 p-1 bg-dark-50 rounded-full w-fit border border-surface-border">
+                  {['1D', '1W', '1M', '3M', '1Y'].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTimeframe(t)}
+                      className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all border ${
+                        timeframe === t
+                          ? 'bg-[#00D09C]/10 text-[#00D09C] border-[#00D09C]'
+                          : 'border-transparent text-muted hover:text-white'
+                      }`}
+                      id={`timeframe-${t}`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                {!marketOpen && (
+                  <span className="text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-2 py-1 rounded-md border border-amber-400/20">
+                    Market Closed
+                  </span>
+                )}
+                {dataSource && (
+                  <span className={`text-[10px] font-mono font-semibold px-2 py-1 rounded-md border ${
+                    dataSource === 'alphavantage'
+                      ? 'text-[#00D09C] bg-[#00D09C]/10 border-[#00D09C]/20'
+                      : dataSource === 'yahoo'
+                      ? 'text-sky-400 bg-sky-400/10 border-sky-400/20'
+                      : 'text-amber-400 bg-amber-400/10 border-amber-400/20'
+                  }`}>
+                    {dataSource === 'alphavantage' ? 'Live' : dataSource === 'yahoo' ? 'Yahoo' : 'Delayed'}
+                  </span>
+                )}
               </div>
 
               {/* Chart Element */}

@@ -46,12 +46,20 @@ router.post('/forgot-password', authLimiter, async (req, res, next) => {
     await forgotPassword(req, res);
   } catch (err) { next(err); }
 });
+router.post('/verify-forgot-password-otp', authLimiter, async (req, res, next) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP are required' });
+  try {
+    const { verifyForgotPasswordOtp } = require('../controllers/auth.controller');
+    await verifyForgotPasswordOtp(req, res, next);
+  } catch (err) { next(err); }
+});
 router.post('/reset-password', authLimiter, async (req, res, next) => {
-  const { email, otp, newPassword } = req.body;
-  if (!email || !otp || !newPassword) return res.status(400).json({ success: false, message: 'Missing fields' });
+  const { resetToken, newPassword } = req.body;
+  if (!resetToken || !newPassword) return res.status(400).json({ success: false, message: 'Missing fields' });
   try {
     const { resetPassword } = require('../controllers/auth.controller');
-    await resetPassword(req, res);
+    await resetPassword(req, res, next);
   } catch (err) { next(err); }
 });
 router.post('/refresh', refresh);

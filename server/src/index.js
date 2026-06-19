@@ -17,7 +17,7 @@ const profileRoutes = require('./routes/profile.routes');
 const { errorHandler } = require('./middleware/error.middleware');
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5003;
 const server = http.createServer(app);
 
 // ── Security Middleware ──────────────────────────────────────────────
@@ -103,8 +103,6 @@ global.livePrices = prices;
 
 // ── Start Server ─────────────────────────────────────────────────────
 server.listen(PORT, () => {
-  console.log(`\n🚀 TradeSphere API running on http://localhost:${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
 }).on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     const newPort = parseInt(PORT) + 1;
@@ -118,8 +116,6 @@ server.listen(PORT, () => {
     console.error('Server error:', err);
   }
 });
-  console.log(`\n🚀 TradeSphere API running on http://localhost:${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
 
 
 module.exports = server;

@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
-    "tailwindcss-mcp-server": "^0.1.1"
+    "sonner": "^2.0.7",
+    "tailwindcss-mcp-server": "^0.1.1",
+    "vaul": "^1.1.2"
   }
 }

@@ -1,1 +1,0 @@
-- [Project documentation (CLAUDE.md)](CLAUDE.md) — core project overview and developer guide

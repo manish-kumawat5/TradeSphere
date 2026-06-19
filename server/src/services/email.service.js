@@ -1,13 +1,21 @@
 const nodemailer = require('nodemailer');
 
 // ── Transporter ──────────────────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  console.error('❌ Missing EMAIL_USER or EMAIL_PASS environment variables for Nodemailer.');
+  // In development we still create a dummy transporter to avoid crashes
+  var transporter = nodemailer.createTransport({
+    jsonTransport: true,
+  });
+} else {
+  var transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+}
 
 transporter.verify((error) => {
   if (error) {

@@ -55,7 +55,9 @@ export default function useLivePrices(symbols = []) {
       if (isUnmounted) return;
 
       console.log('Connecting to price ticker WS...');
-      const wsUrl = `ws://${window.location.hostname}:5001`;
+      // Connect to backend WebSocket (same host, backend port 5003)
+    const backendPort = '5003';
+    const wsUrl = `ws://${window.location.hostname}:${backendPort}`;
       ws = new WebSocket(wsUrl);
 
       ws.onmessage = (event) => {

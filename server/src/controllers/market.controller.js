@@ -33,10 +33,13 @@ async function getHistory(req, res, next) {
     if (!symbol) {
       return res.status(400).json({ success: false, message: 'Symbol is required' });
     }
-    const history = await marketService.getHistory(symbol, range || '1D');
+    const result = await marketService.getHistory(symbol, range || '1D');
+    const quote = await marketService.getQuote(symbol);
     res.json({
       success: true,
-      data: history
+      data: result.candles,
+      source: result.source,
+      currentPrice: quote.price
     });
   } catch (error) {
     next(error);

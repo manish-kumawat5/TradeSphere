@@ -22,7 +22,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#131722',
+              background: 'var(--bg-card)',
               color: '#FFFFFF',
               border: '1px solid rgba(255,255,255,0.06)',
               borderRadius: '12px',
@@ -31,7 +31,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             },
             success: {
               iconTheme: {
-                primary: '#00D09C',
+                primary: 'var(--up)',
                 secondary: '#0B0E11',
               },
             },

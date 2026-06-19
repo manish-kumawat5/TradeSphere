@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import OtpModal from '../components/OtpModal';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, User, Mail, Lock, ArrowRight, Loader2, TrendingUp } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import Logo from '../components/ui/Logo';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -70,16 +71,13 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-dark bg-grid-pattern flex">
+    <div className="min-h-screen bg-[var(--bg-base)] bg-grid-pattern flex">
       {/* Left Panel */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <div className="absolute inset-0 bg-radial-glow" />
         <div className="relative z-10 flex flex-col justify-center px-16 xl:px-24">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 bg-gradient-to-br from-accent to-accent-dark rounded-xl flex items-center justify-center shadow-glow">
-              <TrendingUp className="w-6 h-6 text-dark" />
-            </div>
-            <span className="text-2xl font-bold text-white tracking-tight">TradeSphere</span>
+          <div className="mb-12">
+            <Logo size={48} textSize="text-2xl" />
           </div>
           <h1 className="text-5xl xl:text-6xl font-bold text-white leading-tight mb-6">
             Start your<br /><span className="text-gradient">investing journey</span><br />today.
@@ -99,11 +97,8 @@ export default function SignupPage() {
       {/* Right Panel */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8">
         <div className="w-full max-w-md animate-fade-in-up">
-          <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-dark rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-dark" />
-            </div>
-            <span className="text-xl font-bold text-white">TradeSphere</span>
+          <div className="mb-8 lg:hidden">
+            <Logo size={40} textSize="text-xl" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-2">Create your account</h2>
           <p className="text-muted mb-8">Already have an account? <Link to="/login" className="link-accent" id="login-link">Log in</Link></p>
@@ -113,7 +108,7 @@ export default function SignupPage() {
               <label htmlFor="name" className="input-label">Full Name</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-                <input id="name" name="name" type="text" value={form.name} onChange={handleChange} placeholder="John Doe" className={`input-field pl-12 ${errors.name ? 'border-sell/50' : ''}`} autoComplete="name" />
+                <input id="name" name="name" type="text" value={form.name} onChange={handleChange} placeholder="John Doe" className={`input-base pl-12 ${errors.name ? 'border-red-500/50' : ''}`} autoComplete="name" />
               </div>
               {errors.name && <p className="input-error">{errors.name}</p>}
             </div>
@@ -121,7 +116,7 @@ export default function SignupPage() {
               <label htmlFor="email" className="input-label">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-                <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@example.com" className={`input-field pl-12 ${errors.email ? 'border-sell/50' : ''}`} autoComplete="email" />
+                <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@example.com" className={`input-base pl-12 ${errors.email ? 'border-red-500/50' : ''}`} autoComplete="email" />
               </div>
               {errors.email && <p className="input-error">{errors.email}</p>}
             </div>
@@ -129,7 +124,7 @@ export default function SignupPage() {
               <label htmlFor="password" className="input-label">Password</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-                <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange} placeholder="Min. 8 characters" className={`input-field pl-12 pr-12 ${errors.password ? 'border-sell/50' : ''}`} autoComplete="new-password" />
+                <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange} placeholder="Min. 8 characters" className={`input-base pl-12 pr-12 ${errors.password ? 'border-red-500/50' : ''}`} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-white transition-colors" id="toggle-password">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>

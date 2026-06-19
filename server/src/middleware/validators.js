@@ -9,6 +9,7 @@ const registerValidation = [
     .trim()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Please provide a valid email')
+    .matches(/@(gmail|yahoo|outlook|hotmail|icloud)\.com$/i).withMessage('Email must be a Gmail, Yahoo, Outlook, Hotmail, or iCloud address')
     .normalizeEmail(),
   body('password')
     .notEmpty().withMessage('Password is required')
@@ -23,6 +24,7 @@ const loginValidation = [
     .trim()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Please provide a valid email')
+    .matches(/@(gmail|yahoo|outlook|hotmail|icloud)\.com$/i).withMessage('Email must be a Gmail, Yahoo, Outlook, Hotmail, or iCloud address')
     .normalizeEmail(),
   body('password')
     .notEmpty().withMessage('Password is required'),
@@ -33,6 +35,7 @@ const otpValidation = [
     .trim()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Please provide a valid email')
+    .matches(/@(gmail|yahoo|outlook|hotmail|icloud)\.com$/i).withMessage('Email must be a Gmail, Yahoo, Outlook, Hotmail, or iCloud address')
     .normalizeEmail(),
   body('otp')
     .trim()
@@ -46,6 +49,7 @@ const resendOtpValidation = [
     .trim()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Please provide a valid email')
+    .matches(/@(gmail|yahoo|outlook|hotmail|icloud)\.com$/i).withMessage('Email must be a Gmail, Yahoo, Outlook, Hotmail, or iCloud address')
     .normalizeEmail(),
 ];
 

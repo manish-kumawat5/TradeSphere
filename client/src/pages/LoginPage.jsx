@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Loader2, TrendingUp, BarChart3, Shield, Zap } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Loader2, BarChart3, Shield, Zap } from 'lucide-react';
+import Logo from '../components/ui/Logo';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -52,18 +53,15 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-dark bg-grid-pattern flex">
+    <div className="min-h-screen bg-[var(--bg-base)] bg-grid-pattern flex">
       {/* Left Panel */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <div className="absolute inset-0 bg-radial-glow" />
         <div className="relative z-10 flex flex-col justify-center px-16 xl:px-24">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 bg-gradient-to-br from-accent to-accent-dark rounded-xl flex items-center justify-center shadow-glow">
-              <TrendingUp className="w-6 h-6 text-dark" />
-            </div>
-            <span className="text-2xl font-bold text-white tracking-tight">TradeSphere</span>
+          <div className="mb-12">
+            <Logo size={48} textSize="text-2xl" />
           </div>
-          <h1 className="text-5xl xl:text-6xl font-bold text-white leading-tight mb-6">
+          <h1 className="text-5xl xl:text-6xl font-bold text-[var(--text-primary)] leading-tight mb-6">
             Welcome<br /><span className="text-gradient">back.</span>
           </h1>
           <p className="text-muted text-lg leading-relaxed max-w-md mb-12">
@@ -76,7 +74,7 @@ export default function LoginPage() {
                   <f.icon className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <h3 className="text-white font-medium text-sm">{f.title}</h3>
+                  <h3 className="text-[var(--text-primary)] font-medium text-sm">{f.title}</h3>
                   <p className="text-muted text-sm">{f.desc}</p>
                 </div>
               </div>
@@ -89,13 +87,10 @@ export default function LoginPage() {
       {/* Right Panel */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8">
         <div className="w-full max-w-md animate-fade-in-up">
-          <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-dark rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-dark" />
-            </div>
-            <span className="text-xl font-bold text-white">TradeSphere</span>
+          <div className="mb-8 lg:hidden">
+            <Logo size={40} textSize="text-xl" />
           </div>
-          <h2 className="text-3xl font-bold text-white mb-2">Log in to your account</h2>
+          <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-2">Log in to your account</h2>
           <p className="text-muted mb-8">Don't have an account? <Link to="/signup" className="link-accent" id="signup-link">Sign up</Link> | <Link to="/forgot-password" className="link-accent" id="forgot-password-link">Forgot password?</Link></p>
 
           <form onSubmit={handleSubmit} className="space-y-5" id="login-form">
@@ -103,7 +98,7 @@ export default function LoginPage() {
               <label htmlFor="email" className="input-label">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-                <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@example.com" className={`input-field pl-12 ${errors.email ? 'border-sell/50' : ''}`} autoComplete="email" />
+                <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@example.com" className={`input-base pl-12 ${errors.email ? 'border-sell/50' : ''}`} autoComplete="email" />
               </div>
               {errors.email && <p className="input-error">{errors.email}</p>}
             </div>
@@ -111,8 +106,8 @@ export default function LoginPage() {
               <label htmlFor="password" className="input-label">Password</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-                <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange} placeholder="Enter your password" className={`input-field pl-12 pr-12 ${errors.password ? 'border-sell/50' : ''}`} autoComplete="current-password" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-white transition-colors" id="toggle-password-login">
+                <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange} placeholder="Enter your password" className={`input-base pl-12 pr-12 ${errors.password ? 'border-sell/50' : ''}`} autoComplete="current-password" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-[var(--text-primary)] transition-colors" id="toggle-password-login">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>

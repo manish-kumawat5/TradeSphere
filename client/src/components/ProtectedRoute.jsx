@@ -2,6 +2,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
+import Layout from './Layout';
+
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
@@ -21,5 +23,6 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return children;
+  // Wrap protected content with the main Layout (Header, Sidebar, Footer)
+  return <Layout>{children}</Layout>;
 }

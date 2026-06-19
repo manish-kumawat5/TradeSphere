@@ -61,7 +61,7 @@ function initWebSocketServer(server) {
       }
       
       if (Object.keys(updates).length > 0) {
-        ws.send(JSON.stringify({ type: 'ticks', data: updates }));
+        ws.send(JSON.stringify({ type: 'PRICE_TICK', data: updates }));
       }
     };
 

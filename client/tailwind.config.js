@@ -1,91 +1,46 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
-      colors: {
-        dark: {
-          DEFAULT: '#0B0E11',
-          50: '#1A1D23',
-          100: '#151820',
-          200: '#131722',
-          300: '#0F1218',
-          400: '#0B0E11',
-          500: '#080A0D',
-        },
-        accent: {
-          DEFAULT: '#00D09C',
-          light: '#00E8AD',
-          dark: '#00B386',
-          50: 'rgba(0, 208, 156, 0.05)',
-          100: 'rgba(0, 208, 156, 0.1)',
-          200: 'rgba(0, 208, 156, 0.2)',
-        },
-        sell: {
-          DEFAULT: '#FF5252',
-          light: '#FF6B6B',
-          dark: '#E04545',
-        },
-        muted: {
-          DEFAULT: '#8A8F98',
-          light: '#A0A5AE',
-          dark: '#6B7080',
-        },
-        surface: {
-          DEFAULT: '#131722',
-          light: '#1A1D23',
-          border: 'rgba(255, 255, 255, 0.06)',
-        },
-      },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        sans:  ['Hanken Grotesk', 'Inter', 'sans-serif'],
+        mono:  ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
-      animation: {
-        'fade-in': 'fadeIn 0.5s ease-out',
-        'fade-in-up': 'fadeInUp 0.6s ease-out',
-        'slide-in-right': 'slideInRight 0.4s ease-out',
-        'scale-in': 'scaleIn 0.3s ease-out',
-        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
-        'shimmer': 'shimmer 2s linear infinite',
-      },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+      colors: {
+        primary:   { DEFAULT: '#2962FF', light: '#5C85FF', dark: '#1539B3', subtle: 'rgba(41,98,255,0.08)' },
+        secondary: { DEFAULT: '#00C853', light: '#00E676', dark: '#007A32', subtle: 'rgba(0,200,83,0.08)' },
+        tertiary:  { DEFAULT: '#FF5252', light: '#FF6E6E', dark: '#C62828', subtle: 'rgba(255,82,82,0.08)' },
+        neutral: {
+          950: '#020617', 900: '#0F172A', 800: '#1E293B', 700: '#2D3B52',
+          600: '#3D4E68', 500: '#64748B', 400: '#94A3B8', 300: '#CBD5E1',
+          200: '#E2E8F0', 100: '#F1F5F9', 50: '#F8FAFC',
         },
-        fadeInUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        slideInRight: {
-          '0%': { opacity: '0', transform: 'translateX(20px)' },
-          '100%': { opacity: '1', transform: 'translateX(0)' },
-        },
-        scaleIn: {
-          '0%': { opacity: '0', transform: 'scale(0.9)' },
-          '100%': { opacity: '1', transform: 'scale(1)' },
-        },
-        pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(0, 208, 156, 0.1)' },
-          '50%': { boxShadow: '0 0 40px rgba(0, 208, 156, 0.3)' },
-        },
-        shimmer: {
-          '0%': { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
+        up:     '#00C853',
+        down:   '#FF5252',
+        brand:  '#2962FF',
+        surface:  '#0F172A',
+        'surface-border': 'rgba(255,255,255,0.08)',
+        'surface-light': '#1C2333',
+        card:     '#1E293B',
+        elevated: '#2D3B52',
+        accent:   '#00D09C',
+        sell:     '#FF4757',
+        muted:    '#8B949E',
+        'muted-light': '#A0AAB4',
+        dark:     '#080B10',
+        'dark-50': '#0D1117',
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(0, 208, 156, 0.15)',
-        'glow-lg': '0 0 40px rgba(0, 208, 156, 0.2)',
-        'card': '0 4px 24px rgba(0, 0, 0, 0.3)',
-        'card-hover': '0 8px 32px rgba(0, 0, 0, 0.4)',
+        card:    '0 4px 16px rgba(2,6,23,0.4), 0 0 0 0.5px var(--border-subtle)',
+        modal:   '0 24px 64px rgba(2,6,23,0.8), 0 0 0 1px var(--border-default)',
+        glow:    '0 0 20px rgba(0,208,156,0.2)',
+        'glow-primary': '0 0 24px rgba(41,98,255,0.25)',
+        'glow-up':      '0 0 20px rgba(0,200,83,0.20)',
       },
+      borderRadius: { sm:'6px', md:'10px', lg:'14px', xl:'20px', '2xl':'28px' },
     },
   },
   plugins: [],
-};
+}

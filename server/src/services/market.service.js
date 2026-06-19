@@ -8,22 +8,78 @@ const STOCKS_METADATA = {
   'INFY': { name: 'Infosys Ltd.', sector: 'Information Technology', marketCap: '₹7.0T', pe: 26.2, high52W: 1750.00, low52W: 1350.00, basePrice: 1678.30 },
   'HDFCBANK': { name: 'HDFC Bank Ltd.', sector: 'Financial Services', marketCap: '₹11.7T', pe: 19.8, high52W: 1720.00, low52W: 1380.00, basePrice: 1542.60 },
   'ICICIBANK': { name: 'ICICI Bank Ltd.', sector: 'Financial Services', marketCap: '₹7.8T', pe: 18.2, high52W: 1150.00, low52W: 880.00, basePrice: 1123.90 },
-  
+
   // US Stocks
   'AAPL': { name: 'Apple Inc.', sector: 'Technology', marketCap: '$3.02T', pe: 31.4, high52W: 198.23, low52W: 164.08, basePrice: 185.50 },
   'MSFT': { name: 'Microsoft Corporation', sector: 'Technology', marketCap: '$3.15T', pe: 36.8, high52W: 430.82, low52W: 315.18, basePrice: 415.60 },
   'TSLA': { name: 'Tesla Inc.', sector: 'Automotive', marketCap: '$560B', pe: 45.2, high52W: 299.29, low52W: 138.80, basePrice: 175.20 },
   'AMZN': { name: 'Amazon.com Inc.', sector: 'Consumer Cyclical', marketCap: '$1.85T', pe: 41.7, high52W: 189.77, low52W: 112.91, basePrice: 178.40 },
   'GOOGL': { name: 'Alphabet Inc.', sector: 'Technology', marketCap: '$2.12T', pe: 27.5, high52W: 178.42, low52W: 115.82, basePrice: 172.50 },
-  
+
   // Indices
-  'NIFTY 50': { name: 'Nifty 50 Index', sector: 'Index', marketCap: 'N/A', pe: 21.2, high52W: 23400.00, low52W: 18800.00, basePrice: 22850.50 },
+  'NIFTY50': { name: 'Nifty 50 Index', sector: 'Index', marketCap: 'N/A', pe: 21.2, high52W: 23400.00, low52W: 18800.00, basePrice: 22850.50 },
   'SENSEX': { name: 'BSE Sensex Index', sector: 'Index', marketCap: 'N/A', pe: 23.4, high52W: 77000.00, low52W: 62000.00, basePrice: 75120.30 },
   'BANKNIFTY': { name: 'Nifty Bank Index', sector: 'Index', marketCap: 'N/A', pe: 16.5, high52W: 50500.00, low52W: 42000.00, basePrice: 49200.80 }
 };
 
+// Map client symbol format to Alpha Vantage format
+function mapToAVSymbol(symbol) {
+  const indianStocks = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'WIPRO', 'SBIN', 'BAJFINANCE'];
+  if (indianStocks.includes(symbol)) {
+    return `${symbol}.NS`;
+  }
+  const indexMap = {
+    'NIFTY50': '^NSEI',
+    'NIFTY': '^NSEI',
+    'SENSEX': '^BSESN',
+    'BANKNIFTY': '^NSEBANK'
+  };
+  if (indexMap[symbol]) return indexMap[symbol];
+  return symbol;
+}
+
+function mapToYahooSymbol(symbol) {
+  const indianStocks = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'WIPRO', 'SBIN', 'BAJFINANCE'];
+  if (indianStocks.includes(symbol)) return `${symbol}.NS`;
+  const indexMap = {
+    'NIFTY50': '^NSEI',
+    'NIFTY': '^NSEI',
+    'SENSEX': '^BSESN',
+    'BANKNIFTY': '^NSEBANK'
+  };
+  if (indexMap[symbol]) return indexMap[symbol];
+  return symbol;
+}
+
+function getTodayNSEStamps() {
+  const now = new Date();
+  const localOffset = now.getTimezoneOffset() * 60000;
+  const istOffset = -330 * 60000;
+  const istNowMs = now.getTime() + (istOffset - localOffset);
+  const istNow = new Date(istNowMs);
+  const day = istNow.getUTCDay();
+  if (day === 0 || day === 6) return null;
+  const todayStartMs = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate())).getTime();
+  const marketOpenMs = todayStartMs + (9 * 60 + 15) * 60000;
+  const marketCloseMs = todayStartMs + (15 * 60 + 30) * 60000;
+  return { open: marketOpenMs, close: marketCloseMs };
+}
+
+function avTimestampToUnix(avTimestamp) {
+  const month = parseInt(avTimestamp.substring(5, 7), 10);
+  const offset = (month >= 3 && month <= 10) ? '-04:00' : '-05:00';
+  return Math.floor(new Date(avTimestamp.replace(' ', 'T') + offset).getTime() / 1000);
+}
+
+const AV_BASE = 'https://www.alphavantage.co/query';
+
 // In-memory store for active live prices (updated by background job)
 const activeQuotes = {};
+
+// Alpha Vantage rate limiting (free tier: 25 requests/day)
+let avCallsToday = 0;
+let avCallsDate = new Date().toDateString();
+const AV_DAILY_LIMIT = 25;
 
 // Initialize prices
 Object.keys(STOCKS_METADATA).forEach(symbol => {
@@ -78,24 +134,41 @@ async function getQuote(symbol) {
   const cached = activeQuotes[uppercaseSymbol];
   const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_API_KEY || '2TJCE6O0KAEMJ31L';
   
-  // 1. Try Alpha Vantage
+  // 1. Try Alpha Vantage with symbol mapping and rate limiting
   try {
-    const response = await axios.get(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${uppercaseSymbol}&apikey=${ALPHA_VANTAGE_KEY}`, { timeout: 3000 });
-    const globalQuote = response.data?.["Global Quote"];
-    if (globalQuote && globalQuote["05. price"]) {
-      const quote = {
-        symbol: uppercaseSymbol,
-        price: parseFloat(globalQuote["05. price"]),
-        change: parseFloat(globalQuote["09. change"]) || 0,
-        changePercent: parseFloat(globalQuote["10. change percent"]?.replace('%', '')) || 0,
-        volume: parseInt(globalQuote["06. volume"], 10) || (cached ? cached.volume : 1000000),
-        high: parseFloat(globalQuote["03. high"]) || parseFloat(globalQuote["05. price"]),
-        low: parseFloat(globalQuote["04. low"]) || parseFloat(globalQuote["05. price"]),
-        open: parseFloat(globalQuote["02. open"]) || parseFloat(globalQuote["05. price"]),
-        lastUpdated: new Date()
-      };
-      activeQuotes[uppercaseSymbol] = quote;
-      return quote;
+    // Check rate limit
+    const today = new Date().toDateString();
+    if (today !== avCallsDate) {
+      // Reset counter for new day
+      avCallsToday = 0;
+      avCallsDate = today;
+    }
+
+    if (avCallsToday >= AV_DAILY_LIMIT) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Market Service] Alpha Vantage daily limit reached for ${uppercaseSymbol}`);
+      }
+    } else {
+      // Map symbol to Alpha Vantage format
+      const avSymbol = mapToAVSymbol(uppercaseSymbol);
+      const response = await axios.get(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${avSymbol}&apikey=${ALPHA_VANTAGE_KEY}`, { timeout: 3000 });
+      const globalQuote = response.data?.["Global Quote"];
+      if (globalQuote && globalQuote["05. price"]) {
+        avCallsToday++;
+        const quote = {
+          symbol: uppercaseSymbol,
+          price: parseFloat(globalQuote["05. price"]),
+          change: parseFloat(globalQuote["09. change"]) || 0,
+          changePercent: parseFloat(globalQuote["10. change percent"]?.replace('%', '')) || 0,
+          volume: parseInt(globalQuote["06. volume"], 10) || (cached ? cached.volume : 1000000),
+          high: parseFloat(globalQuote["03. high"]) || parseFloat(globalQuote["05. price"]),
+          low: parseFloat(globalQuote["04. low"]) || parseFloat(globalQuote["05. price"]),
+          open: parseFloat(globalQuote["02. open"]) || parseFloat(globalQuote["05. price"]),
+          lastUpdated: new Date()
+        };
+        activeQuotes[uppercaseSymbol] = quote;
+        return quote;
+      }
     }
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
@@ -103,9 +176,10 @@ async function getQuote(symbol) {
     }
   }
 
-  // 2. Try Yahoo Finance
+  // 2. Try Yahoo Finance (adjust symbol for Yahoo format)
   try {
-    const response = await axios.get(`https://query1.finance.yahoo.com/v8/finance/chart/${uppercaseSymbol}?interval=1m&range=1d`, {
+    const yahooSymbol = mapToYahooSymbol(uppercaseSymbol);
+    const response = await axios.get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1m&range=1d`, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       timeout: 3000
     });
@@ -166,75 +240,86 @@ async function getQuote(symbol) {
 }
 
 /**
- * Generate historical points for mock data
+ * Generate historical points anchored to today's NSE session (9:15 AM – 3:30 PM IST)
  */
-function generateMockHistory(basePrice, pointsCount, trend = 0.0001) {
+function generateMockHistory(basePrice, pointsCount, trend = 0.0001, currentPrice = null) {
   const data = [];
-  let currentPrice = basePrice;
-  const now = Date.now();
-  
-  // Create timeseries points
-  for (let i = pointsCount; i >= 0; i--) {
-    const time = now - i * 1000 * 60 * 15; // 15-min intervals
-    const variance = (Math.random() - 0.495) * 0.015;
-    currentPrice = Math.max(0.1, Number((currentPrice * (1 + variance + trend)).toFixed(2)));
-    
-    // Simulate OHLCV
-    const volatility = 0.005;
-    const open = Number((currentPrice * (1 + (Math.random() - 0.5) * volatility)).toFixed(2));
-    const close = currentPrice;
+  const finalPrice = currentPrice || basePrice;
+  let price = finalPrice * (1 - 0.015);
+  const stepTrend = (finalPrice - price) / pointsCount;
+  const session = getTodayNSEStamps();
+  if (!session) return data;
+  const nowMs = Date.now();
+  const sessionMs = session.close - session.open;
+  const intervalMs = sessionMs / pointsCount;
+
+  for (let i = 0; i < pointsCount; i++) {
+    const candleTimeMs = session.open + i * intervalMs;
+    if (candleTimeMs > nowMs) break;
+    const noise = (Math.random() - 0.5) * finalPrice * 0.004;
+    const open = price;
+    price = price + stepTrend + noise;
+    const close = i === pointsCount - 1 ? finalPrice : price;
+    const volatility = 0.002;
     const high = Number((Math.max(open, close) * (1 + Math.random() * volatility)).toFixed(2));
     const low = Number((Math.min(open, close) * (1 - Math.random() * volatility)).toFixed(2));
-    const volume = Math.floor(5000 + Math.random() * 95000);
 
     data.push({
-      time: Math.floor(time / 1000), // UNIX timestamp
-      open,
+      time: Math.floor(candleTimeMs / 1000),
+      open: +open.toFixed(2),
       high,
       low,
-      close,
-      volume
+      close: +close.toFixed(2),
+      volume: Math.floor(5000 + Math.random() * 95000)
     });
   }
   return data;
 }
 
 /**
- * Fetch historical data for a symbol
+ * Fetch historical data for a symbol.
+ * Tries Alpha Vantage intraday/daily first, then Yahoo, then mock fallback.
+ * Returns { candles, source } where source is 'alphavantage' | 'yahoo' | 'fallback'.
  */
 async function getHistory(symbol, range = '1D') {
   const uppercaseSymbol = symbol.toUpperCase();
   const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_API_KEY || '2TJCE6O0KAEMJ31L';
-  
-  // 1. Try Alpha Vantage History
+  const r = range.toUpperCase();
+
+  // 1. Try Alpha Vantage with proper symbol mapping and IST-converted timestamps
   try {
-    let url = '';
-    if (range.toUpperCase() === '1D') {
-      url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${uppercaseSymbol}&interval=15min&outputsize=compact&apikey=${ALPHA_VANTAGE_KEY}`;
+    const avSymbol = mapToAVSymbol(uppercaseSymbol);
+    const isIntraday = r === '1D' || r === '1W';
+    const intervalMap = { '1D': '5min', '1W': '15min' };
+    const interval = intervalMap[r] || '15min';
+
+    let url;
+    let seriesKey;
+    if (isIntraday) {
+      url = `${AV_BASE}?function=TIME_SERIES_INTRADAY&symbol=${avSymbol}&interval=${interval}&outputsize=compact&apikey=${ALPHA_VANTAGE_KEY}`;
+      seriesKey = `Time Series (${interval})`;
     } else {
-      url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${uppercaseSymbol}&outputsize=compact&apikey=${ALPHA_VANTAGE_KEY}`;
+      url = `${AV_BASE}?function=TIME_SERIES_DAILY&symbol=${avSymbol}&outputsize=compact&apikey=${ALPHA_VANTAGE_KEY}`;
+      seriesKey = 'Time Series (Daily)';
     }
-    
-    const response = await axios.get(url, { timeout: 4000 });
-    const timeSeries = response.data?.["Time Series (15min)"] || 
-                       response.data?.["Time Series (5min)"] || 
-                       response.data?.["Time Series (Daily)"];
-                       
+
+    const response = await axios.get(url, { timeout: 8000 });
+    const timeSeries = response.data?.[seriesKey];
+
     if (timeSeries) {
-      const ohlcv = Object.keys(timeSeries).map(dateStr => {
-        const point = timeSeries[dateStr];
-        return {
-          time: Math.floor(new Date(dateStr).getTime() / 1000),
+      const ohlcv = Object.entries(timeSeries)
+        .map(([timestamp, point]) => ({
+          time: avTimestampToUnix(timestamp),
           open: parseFloat(point["1. open"]) || 0,
           high: parseFloat(point["2. high"]) || 0,
           low: parseFloat(point["3. low"]) || 0,
           close: parseFloat(point["4. close"]) || 0,
           volume: parseInt(point["5. volume"], 10) || 0
-        };
-      }).sort((a, b) => a.time - b.time); // Ascending order
-      
-      if (ohlcv.length > 0) {
-        return ohlcv;
+        }))
+        .sort((a, b) => a.time - b.time);
+
+      if (ohlcv.length > 5) {
+        return { candles: ohlcv, source: 'alphavantage' };
       }
     }
   } catch (error) {
@@ -245,21 +330,15 @@ async function getHistory(symbol, range = '1D') {
 
   // 2. Try Yahoo Finance
   try {
-    let interval = '15m';
-    let period = '1d';
-    
-    switch (range.toUpperCase()) {
-      case '1D': interval = '5m'; period = '1d'; break;
-      case '1W': interval = '15m'; period = '5d'; break;
-      case '1M': interval = '1h'; period = '1mo'; break;
-      case '3M': interval = '1d'; period = '3mo'; break;
-      case '1Y': interval = '1d'; period = '1y'; break;
-      default: interval = '15m'; period = '1d'; break;
-    }
+    const yahooSymbol = mapToYahooSymbol(uppercaseSymbol);
+    const intervalMap = { '1D': '5m', '1W': '15m', '1M': '1h', '3M': '1d', '1Y': '1d' };
+    const periodMap = { '1D': '1d', '1W': '5d', '1M': '1mo', '3M': '3mo', '1Y': '1y' };
+    const interval = intervalMap[r] || '15m';
+    const period = periodMap[r] || '1d';
 
     const response = await axios.get(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${uppercaseSymbol}?interval=${interval}&range=${period}`,
-      { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 4000 }
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${interval}&range=${period}`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 8000 }
     );
 
     const result = response.data?.chart?.result?.[0];
@@ -267,7 +346,7 @@ async function getHistory(symbol, range = '1D') {
       const timestamps = result.timestamp || [];
       const quote = result.indicators.quote[0];
       const ohlcv = [];
-      
+
       for (let i = 0; i < timestamps.length; i++) {
         if (quote.open[i] && quote.close[i]) {
           ohlcv.push({
@@ -280,9 +359,9 @@ async function getHistory(symbol, range = '1D') {
           });
         }
       }
-      
-      if (ohlcv.length > 0) {
-        return ohlcv;
+
+      if (ohlcv.length > 5) {
+        return { candles: ohlcv, source: 'yahoo' };
       }
     }
   } catch (error) {
@@ -291,20 +370,22 @@ async function getHistory(symbol, range = '1D') {
     }
   }
 
-  // 3. Fallback to high-quality mock historical data
+  // 3. Fallback to mock data anchored to today's NSE session
   const meta = STOCKS_METADATA[uppercaseSymbol] || { basePrice: 500 };
+  const liveQuote = activeQuotes[uppercaseSymbol];
+  const anchorPrice = liveQuote ? liveQuote.price : meta.basePrice;
   let points = 100;
   let trend = 0.00005;
-  
-  switch (range.toUpperCase()) {
-    case '1D': points = 78; break; // ~6.5 hours of trading at 5m
+
+  switch (r) {
+    case '1D': points = 78; break;
     case '1W': points = 150; break;
     case '1M': points = 300; break;
     case '3M': points = 90; trend = 0.0005; break;
     case '1Y': points = 250; trend = 0.001; break;
   }
 
-  return generateMockHistory(meta.basePrice, points, trend);
+  return { candles: generateMockHistory(anchorPrice, points, trend, anchorPrice), source: 'fallback' };
 }
 
 /**
