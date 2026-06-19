@@ -134,24 +134,39 @@ export default function DashboardPage() {
   // Fetch Core Portfolio & Watchlist Data
   async function fetchData() {
     try {
-      const [portfolioRes, watchlistRes, profileRes, transactionsRes] = await Promise.all([
+      const results = await Promise.allSettled([
         api.get('/orders/portfolio'),
         api.get('/watchlist'),
         api.get('/user/profile'),
         api.get('/orders/transactions')
       ]);
 
-      if (portfolioRes.data.success) {
-        setPortfolioData(portfolioRes.data.data);
+      const [portfolioRes, watchlistRes, profileRes, transactionsRes] = results;
+
+      if (portfolioRes.status === 'fulfilled' && portfolioRes.value.data.success) {
+        setPortfolioData(portfolioRes.value.data.data);
+      } else {
+        console.error('Portfolio fetch failed:', portfolioRes.reason);
       }
-      if (watchlistRes.data.success) {
-        setWatchlist(watchlistRes.data.data);
+      if (watchlistRes.status === 'fulfilled' && watchlistRes.value.data.success) {
+        setWatchlist(watchlistRes.value.data.data);
+      } else {
+        console.error('Watchlist fetch failed:', watchlistRes.reason);
       }
-      if (profileRes.data.success) {
-        setWalletBalance(profileRes.data.data.walletBalance);
+      if (profileRes.status === 'fulfilled' && profileRes.value.data.success) {
+        setWalletBalance(profileRes.value.data.data.walletBalance);
+      } else {
+        console.error('Profile fetch failed:', profileRes.reason);
       }
-      if (transactionsRes.data.success) {
-        setTransactions(transactionsRes.data.data);
+      if (transactionsRes.status === 'fulfilled' && transactionsRes.value.data.success) {
+        setTransactions(transactionsRes.value.data.data);
+      } else {
+        console.error('Transactions fetch failed:', transactionsRes.reason);
+      }
+
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        toast.error(`Failed to load ${failures.length} data section(s). Check console.`);
       }
     } catch (err) {
       console.error(err);

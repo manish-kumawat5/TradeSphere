@@ -17,6 +17,9 @@ const { errorHandler } = require('./middleware/error.middleware');
 
 const app = express();
 
+// ── Trust Proxy (required behind Railway/Render/Nginx) ───────────────
+app.set('trust proxy', 1);
+
 // ── Security Middleware ──────────────────────────────────────────────
 app.use(helmet());
 const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
