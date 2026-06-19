@@ -5,7 +5,6 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 
-const http = require('http');
 const authRoutes = require('./routes/auth.routes');
 const marketRoutes = require('./routes/market.routes');
 const watchlistRoutes = require('./routes/watchlist.routes');
@@ -105,7 +104,9 @@ if (!process.env.VERCEL) {
 
   global.livePrices = prices;
 
-  server.listen(PORT, () => {}).on('error', (err) => {
+  server.listen(PORT, () => {
+    console.log(`TradeSphere API running on port ${PORT}`);
+  }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       const newPort = parseInt(PORT) + 1;
       console.warn(`Port ${PORT} in use, switching to ${newPort}`);
