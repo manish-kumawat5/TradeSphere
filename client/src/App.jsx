@@ -48,7 +48,7 @@ export default function App() {
         <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
-        <Route path="/dashboard" element={<ProtectedLayout><DashboardPage /></ProtectedLayout>} />
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/markets" element={<ProtectedLayout><MarketsPage /></ProtectedLayout>} />
         <Route path="/stocks" element={<ProtectedLayout><StocksPage /></ProtectedLayout>} />
         <Route path="/stocks/:symbol" element={<ProtectedLayout><StockDetailPage /></ProtectedLayout>} />
