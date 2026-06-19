@@ -81,6 +81,7 @@ if (!process.env.VERCEL) {
 
   const { WebSocketServer } = require('ws');
   const wss = new WebSocketServer({ server });
+  const marketService = require('./services/market.service');
 
   // SIP scheduler removed (was causing DB connection issues at startup)
   // const { startSipScheduler } = require('./services/sipScheduler');
@@ -91,22 +92,23 @@ if (!process.env.VERCEL) {
     ws.on('close', () => console.log('Client disconnected'));
   });
 
-  const SYMBOLS = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'WIPRO', 'SBIN', 'BAJFINANCE', 'NIFTY50', 'SENSEX', 'BANKNIFTY'];
-  const prices = {};
-  SYMBOLS.forEach(s => { prices[s] = 1000 + Math.random() * 4000; });
-
   setInterval(() => {
-    SYMBOLS.forEach(sym => {
-      const change = (Math.random() - 0.495) * 0.006;
-      prices[sym] = parseFloat((prices[sym] * (1 + change)).toFixed(2));
+    const prices = {};
+    Object.entries(marketService.activeQuotes).forEach(([sym, quote]) => {
+      prices[sym] = quote.price;
     });
+    global.livePrices = prices;
     const payload = JSON.stringify({ type: 'PRICE_TICK', data: prices, ts: Date.now() });
     wss.clients.forEach(client => {
       if (client.readyState === 1) client.send(payload);
     });
   }, 3000);
 
-  global.livePrices = prices;
+  // Seed activeQuotes with real Alpha Vantage prices on startup
+  const SYMBOLS = Object.keys(marketService.activeQuotes);
+  SYMBOLS.forEach((sym, i) => {
+    setTimeout(() => marketService.getQuote(sym).catch(() => {}), i * 600);
+  });
 
   server.listen(PORT, () => {
     console.log(`TradeSphere API running on port ${PORT}`);

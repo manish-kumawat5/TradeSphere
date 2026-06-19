@@ -55,7 +55,7 @@ export default function useLivePrices(symbols = []) {
       if (isUnmounted) return;
 
       console.log('Connecting to price ticker WS...');
-      const wsUrl = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:5003`;
+      const wsUrl = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:5001`;
       ws = new WebSocket(wsUrl);
 
       ws.onmessage = (event) => {
