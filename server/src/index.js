@@ -59,7 +59,6 @@ app.use('/api/funds', fundsRoutes);
 app.use('/api/notifications', require('./routes/notifications.routes'));
 app.use('/api/reports', require('./routes/reports.routes'));
 app.use('/api/settings', require('./routes/settings.routes'));
-app.use('/api/profile', profileRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/profile', profileRoutes);
 

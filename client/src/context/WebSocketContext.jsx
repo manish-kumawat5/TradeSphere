@@ -41,13 +41,19 @@ export function WebSocketProvider({ children }) {
     socket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        if (message.type === 'ticks') {
+        if (message.type === 'PRICE_TICK') {
+          const tickData = {};
+          Object.entries(message.data).forEach(([symbol, price]) => {
+            tickData[symbol] = { price, change: 0, changePercent: 0 };
+          });
           setTicks((prev) => {
             setLastTicks(prev);
-            return {
-              ...prev,
-              ...message.data
-            };
+            return { ...prev, ...tickData };
+          });
+        } else if (message.type === 'ticks') {
+          setTicks((prev) => {
+            setLastTicks(prev);
+            return { ...prev, ...message.data };
           });
         }
       } catch (err) {
