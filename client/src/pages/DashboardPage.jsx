@@ -407,7 +407,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0E17] flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-base)] flex flex-col items-center justify-center">
         <Activity className="w-10 h-10 text-accent animate-pulse mb-3" />
         <p className="text-muted font-semibold text-sm">Loading TradeSphere Workspace...</p>
       </div>
@@ -415,7 +415,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen pb-16 transition-colors duration-300 relative bg-[#0A0E17]">
+    <div className="min-h-screen pb-16 transition-colors duration-300 relative bg-[var(--bg-base)]">
       <div className="absolute inset-0 bg-grid-pattern pointer-events-none z-0" />
       <div className="absolute inset-0 bg-radial-glow pointer-events-none z-0" />
       
@@ -427,7 +427,7 @@ export default function DashboardPage() {
         <div className="w-full flex items-center justify-between max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
           
           {/* Scrollable container for marquee indices */}
-          <div className="ticker-outer overflow-hidden whitespace-nowrap">
+          <div className="ticker-outer overflow-hidden whitespace-nowrap w-full max-w-full">
             <div className="ticker-track animate-ticker flex items-center gap-8">
               {[...
                 [
@@ -497,7 +497,7 @@ export default function DashboardPage() {
               Hi, {user?.name?.split(' ')[0] || 'Investor'}. Explore assets, manage your custom widgets, and execute transactions.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 px-4 max-w-full">
             <button
               onClick={() => setShowWidgetConfig(!showWidgetConfig)}
               className="btn-ghost flex items-center gap-1.5 px-4 py-2.5 text-xs bg-[var(--bg-card)] border border-[var(--border-subtle)]"
@@ -555,7 +555,7 @@ export default function DashboardPage() {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pb-24">
           
           {/* ════════ LEFT GRID COLUMN (Span 8) ════════ */}
           <div className="lg:col-span-8 space-y-8">
@@ -635,7 +635,7 @@ export default function DashboardPage() {
                       <YAxis stroke="#8A8F98" fontSize={9} tickLine={false} axisLine={false} />
                       <Tooltip
                         contentStyle={{
-                          background: isDark ? '#131722' : '#ffffff',
+                          background: 'var(--bg-base)',
                           border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E2E8F0',
                           borderRadius: '12px',
                           fontSize: '11px',
@@ -845,7 +845,7 @@ export default function DashboardPage() {
                   Showing {paginatedMovers.length > 0 ? (moversPage - 1) * 4 + 1 : 0}-{Math.min(moversPage * 4, filteredMovers.length)} of {filteredMovers.length} stocks
                 </span>
                 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 px-4 max-w-full">
                   <button
                     disabled={moversPage === 1}
                     onClick={() => setMoversPage(p => p - 1)}

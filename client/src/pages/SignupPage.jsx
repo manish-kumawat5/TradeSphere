@@ -86,7 +86,7 @@ export default function SignupPage() {
             Join millions of investors. Trade stocks, mutual funds, and more with zero commission.
           </p>
           <div className="flex gap-8 mt-12">
-            {[{ value: '2M+', label: 'Active Users' }, { value: '₹50K Cr', label: 'Trading Volume' }, { value: '500+', label: 'Stocks Listed' }].map((s) => (
+            {[{ value: '₹50K Cr', label: 'Trading Volume' }, { value: '500+', label: 'Stocks Listed' }].map((s) => (
               <div key={s.label}><p className="text-2xl font-bold text-accent">{s.value}</p><p className="text-muted text-sm mt-1">{s.label}</p></div>
             ))}
           </div>
@@ -131,7 +131,7 @@ export default function SignupPage() {
               </div>
               {errors.password && <p className="input-error">{errors.password}</p>}
               <div className="flex gap-1.5 mt-3">
-                {[1,2,3,4].map((l) => (
+                {[1, 2, 3, 4].map((l) => (
                   <div key={l} className={`h-1 flex-1 rounded-full transition-all duration-300 ${l <= getStrength() ? (getStrength() <= 1 ? 'bg-sell' : getStrength() <= 2 ? 'bg-yellow-500' : 'bg-accent') : 'bg-surface-light'}`} />
                 ))}
               </div>

@@ -199,7 +199,7 @@ export default function StockDetailPage() {
       width: chartContainerRef.current.clientWidth,
       height: 380,
       layout: {
-        background: { color: '#131722' },
+        background: { color: 'var(--bg-base)' },
         textColor: '#8A8F98',
       },
       grid: {
@@ -395,7 +395,7 @@ export default function StockDetailPage() {
               </div>
 
               {/* Chart Element */}
-              <div ref={chartContainerRef} className="w-full h-[380px] bg-[#131722] rounded-2xl overflow-hidden relative" id="chart-container" />
+              <div ref={chartContainerRef} className="w-full h-[380px] bg-[var(--bg-base)] rounded-2xl overflow-hidden relative" id="chart-container" />
             </div>
 
             {/* Fundamentals Metrics */}

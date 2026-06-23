@@ -86,7 +86,7 @@ export default function FundsList() {
       {loading ? (
         <div className="min-h-[30vh] flex flex-col items-center justify-center">
           <div className="w-8 h-8 border-2 border-transparent border-t-[#00D09C] rounded-full animate-spin mb-3" />
-          <p className="text-muted text-sm font-semibold">Loading mutual funds list...</p>
+          <p className="text-gray-300 text-sm font-semibold">Loading mutual funds list...</p>
         </div>
       ) : funds.length === 0 ? (
         <div className="glass-card p-10 bg-white dark:bg-[#0F172A] border border-slate-100 dark:border-surface-border text-center">
@@ -97,7 +97,7 @@ export default function FundsList() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-surface-border/50 bg-slate-50/50 dark:bg-surface-light/5 text-slate-400 dark:text-muted text-[11px] font-bold uppercase tracking-wider">
+                <tr className="border-b border-slate-100 dark:border-surface-border/50 bg-slate-50/50 dark:bg-surface-light/5 text-gray-300 text-[11px] font-bold uppercase tracking-wider">
                   <th className="p-4 pl-6">Fund Scheme Name</th>
                   <th className="p-4">Category</th>
                   <th className="p-4 text-center">Risk Profile</th>

@@ -19,7 +19,7 @@ export default {
         },
         up:     '#00C853',
         down:   '#FF5252',
-        brand:  '#2962FF',
+        brand:  '#0D9488',
         surface:  '#0F172A',
         'surface-border': 'rgba(255,255,255,0.08)',
         'surface-light': '#1C2333',

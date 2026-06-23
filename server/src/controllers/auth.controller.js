@@ -8,18 +8,19 @@ const { generateOTP, sendOtpEmail } = require('../services/email.service');
 const resendOtpLimits = new Map();
 
 // ── Cookie options ───────────────────────────────────────────────────
+const isProduction = process.env.NODE_ENV === 'production';
 const accessCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'none',
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
   maxAge: 15 * 60 * 1000, // 15 minutes
   path: '/',
 };
 
 const refreshCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'none',
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   path: '/api/auth/refresh',
 };
